@@ -1,98 +1,143 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Button } from '@/components/ui/button';
+import { Dropdown } from '@/components/ui/dropdown';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const MOCK_CAMERAS = [
+  { label: 'Camera 1', value: 'camera-1' },
+  { label: 'Camera 2', value: 'camera-2' },
+  { label: 'Front Door', value: 'camera-3' },
+];
 
-export default function HomeScreen() {
+export default function LiveScreen() {
+  const [selectedCamera, setSelectedCamera] = useState('camera-1');
+  const [isPlaying, setIsPlaying] = useState(false);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Dropdown
+          value={selectedCamera}
+          options={MOCK_CAMERAS}
+          onChange={setSelectedCamera}
+          containerStyle={styles.dropdown}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View style={styles.cameraHeader}>
+          <Text style={styles.cameraName}>
+            {MOCK_CAMERAS.find(c => c.value === selectedCamera)?.label}
+          </Text>
+          <TouchableOpacity style={styles.editButton}>
+            <IconSymbol name="pencil" size={20} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.videoContainer}>
+          <TouchableOpacity 
+            style={styles.playButton}
+            onPress={() => setIsPlaying(!isPlaying)}
+          >
+            <IconSymbol 
+              name={isPlaying ? "pause.circle.fill" : "play.circle.fill"} 
+              size={80} 
+              color={Colors.text} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.controls}>
+          <TouchableOpacity style={styles.controlButton}>
+            <IconSymbol name="camera.fill" size={28} color={Colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton}>
+            <IconSymbol name="backward.fill" size={28} color={Colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.controlButton}
+            onPress={() => setIsPlaying(!isPlaying)}
+          >
+            <IconSymbol 
+              name={isPlaying ? "pause.fill" : "play.fill"} 
+              size={28} 
+              color={Colors.text} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton}>
+            <IconSymbol name="forward.fill" size={28} color={Colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton}>
+            <IconSymbol name="speaker.slash.fill" size={28} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <Button
+          title="View Playback"
+          onPress={() => {}}
+          variant="primary"
+          style={styles.playbackButton}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
+  dropdown: {
+    marginBottom: 24,
+    width: '100%',
+  },
+  cameraHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  cameraName: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  editButton: {
+    padding: 4,
+  },
+  videoContainer: {
+    backgroundColor: Colors.surfaceDark,
+    borderRadius: 16,
+    aspectRatio: 16 / 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+    width: '100%',
+  },
+  playButton: {
+    opacity: 0.9,
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
+    width: '100%',
+  },
+  controlButton: {
+    padding: 12,
+  },
+  playbackButton: {
+    marginHorizontal: 0,
+    width: '100%',
   },
 });
