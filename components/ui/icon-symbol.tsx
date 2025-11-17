@@ -33,6 +33,7 @@ const MAPPING = {
   'speaker.slash.fill': 'volume-off',
   'play.fill': 'play-arrow',
   'pause.fill': 'pause',
+  'trash.fill': 'delete'
 } as IconMapping;
 
 /**
