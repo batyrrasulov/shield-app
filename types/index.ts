@@ -61,39 +61,66 @@ export interface Recording {
   reason: string;
 }
 
-export type RuleConditionType = 
-  | 'time_of_day'
-  | 'profile_status'
-  | 'camera_in_list'
-  | 'confidence_threshold';
+
+//* -----------------------------
+//* Rule Types
+//* -----------------------------
+
+export type RuleTriggerType =
+  | 'face_detected'
+  | 'time_interval'
+  | 'scheduled'
+  | 'motion_detected';
 
 export type RuleActionType =
-  | 'send_notification'
-  | 'mark_event_important'
-  | 'start_recording_clip'
-  | 'tag_event_for_followup'
-  | 'disable_camera';
+| 'send_notification'
+| 'mark_event_important'
+| 'start_recording_clip'
+| 'tag_event_for_followup'
+| 'disable_camera';
 
-export interface RuleCondition {
-  type: RuleConditionType;
-  value: any;
-}
+export type TimeUnit = 
+  | 'minute'
+  | 'hour'
+  | 'day'
+  | 'week'
+  | 'year';
 
-export interface RuleAction {
-  type: RuleActionType;
-  value: any;
-}
+export type WeekDay = 
+  | 'Sun'
+  | 'Mon'
+  | 'Tue'
+  | 'Wed'
+  | 'Thu'
+  | 'Fri'
+  | 'Sat';
+
+export type RuleTrigger =
+  | { type: 'face_detected'; profileId: string }
+  | { type: 'time_interval'; interval: number; unit: TimeUnit }
+  | { type: 'scheduled'; days: WeekDay[] }
+  | { type: 'motion_detected' };
+
+export type RuleAction = 
+  | {type: 'send_notification'; message: string}
+  | {type: 'mark_event_important';}
+  | {type: 'start_recording_clip'; duration: number; unit: TimeUnit}
+  | {type: 'tag_event_for_followup';}
+  | {type: 'disable_camera'; duration: number; unit: TimeUnit; notification: boolean}
+
 
 export interface Rule {
   id: string;
   name: string;
-  conditions: RuleCondition[];
+  description?: string;
+  triggers: RuleTrigger[];
   actions: RuleAction[];
   enabled: boolean;
   priority?: number;
   exclusive?: boolean;
   global?: boolean;
 }
+//* -----------------------------
 
 export interface SystemHealth {
   hubStatus: 'online' | 'offline';

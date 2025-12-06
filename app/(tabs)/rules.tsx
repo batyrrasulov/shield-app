@@ -1,17 +1,41 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import RuleCard from '@/components/ui/rule-card';
 import { Colors } from '@/constants/theme';
+import { Rule } from '@/types';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MOCK_RULES = [
-  { id: '1', name: 'Rule #1', summary: 'CAMERA | PERSON' },
-  { id: '2', name: 'Rule #2', summary: 'CAMERA | PERSON' },
-  { id: '3', name: 'Night Alert', summary: 'CAMERA 1 | UNKNOWN' },
-  { id: '4', name: 'Front Door', summary: 'ALL CAMERAS | MOTION' },
-];
+// const MOCK_RULES = [
+//   { id: '1', name: 'Rule #1', summary: 'CAMERA | PERSON' },
+//   { id: '2', name: 'Rule #2', summary: 'CAMERA | PERSON' },
+//   { id: '3', name: 'Night Alert', summary: 'CAMERA 1 | UNKNOWN' },
+//   { id: '4', name: 'Front Door', summary: 'ALL CAMERAS | MOTION' },
+// ];
+
+const MOCK_RULES : Rule[] = [
+  {id: '01', name: 'Motion Alert', description: 'Alert for any motion',
+    triggers: [
+      {type: 'motion_detected'}
+    ], 
+    actions: [
+      {type: "send_notification", message: "Alert Alert!"}
+    ], 
+    enabled: true
+  },
+  {id: '02', name: 'Interal Recording', 
+    triggers: [
+      {type: 'time_interval', interval: 10, unit: 'minute'},
+    ], 
+    actions: [
+      {type: "start_recording_clip", duration: 1, unit: 'minute'}
+    ], 
+    enabled: true
+  },
+]
+
 
 const CAMERA_FILTERS = [
   { id: 'all', label: 'All' },
@@ -98,26 +122,14 @@ export default function RulesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => router.push('/rule-trigger')}>
-            <Card variant="lavender" style={styles.ruleCard}>
-              <View style={styles.ruleContent}>
-                <View style={styles.ruleAvatar}>
-                  <Text style={styles.ruleAvatarText}>A</Text>
-                </View>
-                <View style={styles.ruleInfo}>
-                  <Text style={styles.ruleName}>{item.name}</Text>
-                  <Text style={styles.ruleSummary}>{item.summary}</Text>
-                </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
+          <RuleCard rule={item}></RuleCard>
         )}
       />
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Add Action"
-          onPress={() => router.push('/rule-action')}
+          title="Add Rule"
+          onPress={() => router.push('./rule/new')}
           variant="outline"
         />
       </View>
