@@ -2,40 +2,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import RuleCard from '@/components/ui/rule-card';
 import { Colors } from '@/constants/theme';
-import { Rule } from '@/types';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { MOCK_RULES } from '@/stores/rulesStore';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// const MOCK_RULES = [
-//   { id: '1', name: 'Rule #1', summary: 'CAMERA | PERSON' },
-//   { id: '2', name: 'Rule #2', summary: 'CAMERA | PERSON' },
-//   { id: '3', name: 'Night Alert', summary: 'CAMERA 1 | UNKNOWN' },
-//   { id: '4', name: 'Front Door', summary: 'ALL CAMERAS | MOTION' },
-// ];
-
-const MOCK_RULES : Rule[] = [
-  {id: '01', name: 'Motion Alert', description: 'Alert for any motion',
-    triggers: [
-      {type: 'motion_detected'}
-    ], 
-    actions: [
-      {type: "send_notification", message: "Alert Alert!"}
-    ], 
-    enabled: true
-  },
-  {id: '02', name: 'Interal Recording', 
-    triggers: [
-      {type: 'time_interval', interval: 10, unit: 'minute'},
-    ], 
-    actions: [
-      {type: "start_recording_clip", duration: 1, unit: 'minute'}
-    ], 
-    enabled: true
-  },
-]
-
 
 const CAMERA_FILTERS = [
   { id: 'all', label: 'All' },
@@ -52,6 +23,14 @@ const PERSON_FILTERS = [
 export default function RulesScreen() {
   const [cameraFilter, setCameraFilter] = useState<string[]>(['all']);
   const [personFilter, setPersonFilter] = useState<string[]>(['all']);
+  const [, setRefresh] = useState(0);
+
+  // Refresh the list when screen comes into focus to show newly added rules
+  useFocusEffect(
+    useCallback(() => {
+      setRefresh(prev => prev + 1);
+    }, [])
+  );
 
   const toggleFilter = (filterId: string, filterType: 'camera' | 'person') => {
     const currentFilters = filterType === 'camera' ? cameraFilter : personFilter;
@@ -129,7 +108,7 @@ export default function RulesScreen() {
       <View style={styles.buttonContainer}>
         <Button
           title="Add Rule"
-          onPress={() => router.push('./rule/new')}
+          onPress={() => router.push('../rule/new')}
           variant="outline"
         />
       </View>

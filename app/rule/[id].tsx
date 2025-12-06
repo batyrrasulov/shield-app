@@ -4,23 +4,14 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
+import { addRule, getRuleById, updateRule } from '@/stores/rulesStore';
 import { Rule, RuleAction, RuleTrigger } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Simple in-memory mock store for demo — replace with API / persistent storage
-const MOCK_STORE: Record<string, Rule> = {
-  '01': {
-    id: '01',
-    name: 'Motion Alert',
-    description: 'Alert for any motion',
-    triggers: [{ type: 'motion_detected' }],
-    actions: [{ type: 'send_notification', message: 'Alert Alert!' }],
-    enabled: true,
-  },
-};
+
 
 const TRIGGER_TYPES = [
   { label: 'Motion Detected', value: 'motion_detected' },
@@ -58,7 +49,6 @@ export default function RuleEditor() {
 
   // Step 2 - Triggers state
   const [selectedTriggerType, setSelectedTriggerType] = useState<string>('motion_detected');
-  const [triggerMessage, setTriggerMessage] = useState<string>('');
 
   // Step 3 - Actions state
   const [selectedActionType, setSelectedActionType] = useState<string>('send_notification');
@@ -71,8 +61,8 @@ export default function RuleEditor() {
       setLoading(false);
       return;
     }
-    // load existing rule (replace with real API call)
-    const existing = MOCK_STORE[id];
+    // load existing rule from shared store
+    const existing = getRuleById(id);
     if (existing) {
       setRule(existing);
       setStep(1);
@@ -170,8 +160,13 @@ export default function RuleEditor() {
       return;
     }
 
-    // replace with API create/update
-    MOCK_STORE[rule.id] = { ...rule };
+    // Save to shared store - will update Rules page automatically
+    if (isNew) {
+      addRule(rule);
+    } else {
+      updateRule(rule);
+    }
+    
     router.back();
   };
 
