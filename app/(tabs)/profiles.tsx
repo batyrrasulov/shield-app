@@ -17,7 +17,14 @@ export default function ProfilesScreen() {
   );
 
   return (
+
+    
     <SafeAreaView style={styles.container} edges={['top']}>
+
+      <View style={styles.header}>
+        <Text style={styles.title}>Profiles</Text>
+      </View>
+
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <IconSymbol name="magnifyingglass" size={20} color={Colors.textGray} />
@@ -58,6 +65,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Colors.text,
   },
   header: {
     padding: 20,
