@@ -4,6 +4,8 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
+import { MOCK_CAMERAS } from '@/stores/camerasStore';
+import { MOCK_PROFILES } from '@/stores/profilesStore';
 import { addRule, getRuleById, updateRule } from '@/stores/rulesStore';
 import { Rule, RuleAction, RuleTrigger } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -28,6 +30,13 @@ const ACTION_TYPES = [
   { label: 'Disable Camera', value: 'disable_camera' },
 ];
 
+const TIME_UNITS = [
+  { label: 'Seconds', value: 'second' },
+  { label: 'Minutes', value: 'minute' },
+  { label: 'Hours', value: 'hour' },
+  { label: 'Days', value: 'day' },
+];
+
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -50,10 +59,16 @@ export default function RuleEditor() {
 
   // Step 2 - Triggers state
   const [selectedTriggerType, setSelectedTriggerType] = useState<string>('motion_detected');
+  const [selectedProfile, setSelectedProfile] = useState<string>(MOCK_PROFILES[0]?.id || '');
+  const [timeInterval, setTimeInterval] = useState<string>('5');
+  const [timeUnit, setTimeUnit] = useState<string>('minute');
 
   // Step 3 - Actions state
   const [selectedActionType, setSelectedActionType] = useState<string>('send_notification');
   const [actionMessage, setActionMessage] = useState<string>('');
+
+  // Step 1 - Camera selection state
+  const [isGlobal, setIsGlobal] = useState<boolean>(false);
 
   useEffect(() => {
     if (!id) return;
@@ -80,6 +95,10 @@ export default function RuleEditor() {
         Alert.alert('Validation', 'Rule name is required');
         return;
       }
+      if (!isGlobal && rule.cameras.length === 0) {
+        Alert.alert('Validation', 'Please select cameras or enable global mode');
+        return;
+      }
       setStep(2);
     } else if (step === 2) {
       if (rule.triggers.length === 0) {
@@ -87,6 +106,23 @@ export default function RuleEditor() {
         return;
       }
       setStep(3);
+    }
+  };
+
+  const toggleCamera = (cameraId: string) => {
+    setRule(r => {
+      const cameras = r.cameras.includes(cameraId)
+        ? r.cameras.filter(id => id !== cameraId)
+        : [...r.cameras, cameraId];
+      return { ...r, cameras };
+    });
+  };
+
+  const toggleGlobal = () => {
+    setIsGlobal(!isGlobal);
+    if (!isGlobal) {
+      // When enabling global, clear selected cameras
+      setRule(r => ({ ...r, cameras: [] }));
     }
   };
 
@@ -101,9 +137,9 @@ export default function RuleEditor() {
       selectedTriggerType === 'motion_detected'
         ? { type: 'motion_detected' }
         : selectedTriggerType === 'face_detected'
-          ? { type: 'face_detected', profileId: 'profile-1', isExclusive: false }
+          ? { type: 'face_detected', profileId: selectedProfile, isExclusive: false }
           : selectedTriggerType === 'time_interval'
-            ? { type: 'time_interval', interval: 5, unit: 'minute' }
+            ? { type: 'time_interval', interval: parseInt(timeInterval) || 5, unit: timeUnit as any }
             : { type: 'scheduled', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
 
     setRule(r => ({
@@ -243,6 +279,36 @@ export default function RuleEditor() {
                 </View>
                 <Text style={styles.checkboxLabel}>Enabled</Text>
               </TouchableOpacity>
+
+              <Text style={styles.sectionTitle}>Camera Selection</Text>
+
+              <TouchableOpacity 
+                style={styles.checkbox}
+                onPress={toggleGlobal}
+              >
+                <View style={[styles.checkboxBox, isGlobal && styles.checkboxBoxChecked]}>
+                  {isGlobal && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>Global (All Cameras)</Text>
+              </TouchableOpacity>
+
+              {!isGlobal && (
+                <>
+                  <View style={styles.cameraButtonGroup}>
+                    {MOCK_CAMERAS.map(camera => (
+                      <TouchableOpacity
+                        key={camera.id}
+                        style={[styles.cameraButton, rule.cameras.includes(camera.id) && styles.cameraButtonSelected]}
+                        onPress={() => toggleCamera(camera.id)}
+                      >
+                        <Text style={[styles.cameraButtonText, rule.cameras.includes(camera.id) && styles.cameraButtonTextSelected]}>
+                          {camera.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
             </>
           )}
 
@@ -260,6 +326,41 @@ export default function RuleEditor() {
                 />
               </View>
 
+              {selectedTriggerType === 'face_detected' && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Profile</Text>
+                  <Dropdown
+                    value={selectedProfile}
+                    options={MOCK_PROFILES.map(profile => ({
+                      label: profile.displayName,
+                      value: profile.id,
+                    }))}
+                    onChange={setSelectedProfile}
+                  />
+                </View>
+              )}
+
+              {selectedTriggerType === 'time_interval' && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Interval</Text>
+                  <View style={styles.intervalRow}>
+                    <Input
+                      value={timeInterval}
+                      onChangeText={setTimeInterval}
+                      keyboardType="numeric"
+                      placeholder="5"
+                      containerStyle={styles.intervalInput}
+                    />
+                    <Dropdown
+                      value={timeUnit}
+                      options={TIME_UNITS}
+                      onChange={setTimeUnit}
+                      containerStyle={styles.intervalDropdown}
+                    />
+                  </View>
+                </View>
+              )}
+
               <Button 
                 title="Add Trigger"
                 onPress={addTrigger}
@@ -273,8 +374,8 @@ export default function RuleEditor() {
                     <View key={idx} style={styles.listItem}>
                       <Text style={styles.listItemText}>
                         {trigger.type === 'motion_detected' && 'Motion Detected'}
-                        {trigger.type === 'face_detected' && 'Face Detected'}
-                        {trigger.type === 'time_interval' && 'Time Interval'}
+                        {trigger.type === 'face_detected' && `Face Detected - ${MOCK_PROFILES.find(p => p.id === (trigger as any).profileId)?.displayName || 'Unknown'}`}
+                        {trigger.type === 'time_interval' && `Every ${(trigger as any).interval} ${(trigger as any).unit}(s)`}
                         {trigger.type === 'scheduled' && 'Scheduled'}
                       </Text>
                       <TouchableOpacity onPress={() => removeTrigger(idx)}>
@@ -476,6 +577,62 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: Colors.textDark,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textDark,
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  cameraButtonGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  cameraButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  cameraButtonSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  cameraButtonText: {
+    fontSize: 13,
+    color: Colors.textDark,
+    fontWeight: '500',
+  },
+  cameraButtonTextSelected: {
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  cameraListContent: {
+    flex: 1,
+  },
+  cameraLocation: {
+    fontSize: 12,
+    color: Colors.textGray,
+    marginTop: 2,
+  },
+  removeButton: {
+    padding: 8,
+  },
+  intervalRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  intervalInput: {
+    width: 80,
+  },
+  intervalDropdown: {
+    flex: 1,
   },
   listSection: {
     marginTop: 20,
