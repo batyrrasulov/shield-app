@@ -3,24 +3,17 @@ import { Card } from '@/components/ui/card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
+import { MOCK_PROFILES } from '@/stores/profilesStore';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MOCK_PROFILES = [
-  { id: '1', name: 'Person 1', description: 'Description' },
-  { id: '2', name: 'Person 2', description: 'Description' },
-  { id: '3', name: 'Kevin', description: 'Known visitor' },
-  { id: '4', name: 'Sarah', description: 'Family member' },
-  { id: '5', name: 'Unknown', description: 'Detected 3 times' },
-];
-
 export default function ProfilesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredProfiles = MOCK_PROFILES.filter(profile =>
-    profile.name.toLowerCase().includes(searchQuery.toLowerCase())
+    profile.displayName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -44,12 +37,12 @@ export default function ProfilesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => router.push('/profile-detail')}>
+          <TouchableOpacity onPress={() => router.push(`../profile/${item.id}`)}>
             <Card variant="lavender" style={styles.profileCard}>
               <View style={styles.profileContent}>
-                <Avatar name={item.name} size={50} />
+                <Avatar name={item.displayName} size={50} />
                 <View style={styles.profileInfo}>
-                  <Text style={styles.profileName}>{item.name}</Text>
+                  <Text style={styles.profileName}>{item.displayName}</Text>
                   <Text style={styles.profileDescription}>{item.description}</Text>
                 </View>
               </View>

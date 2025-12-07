@@ -28,9 +28,11 @@ export interface Profile {
   confidenceThreshold: number;
   avatarUrl?: string;
   lastSeen?: {
-    timestamp: string;
+    time: string;
+    date: string;
     cameraId: string;
   };
+  description?: string;
 }
 
 export type DetectionEventType = 

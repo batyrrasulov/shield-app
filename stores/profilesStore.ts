@@ -6,7 +6,8 @@ export const MOCK_PROFILES: Profile[] = [
         displayName: "Kevin",
         confidenceThreshold: 0.8,
         lastSeen: {
-            timestamp: "2025-12-07T00:07:46.115Z",
+            date: "2025-12-07",
+            time: "00:07:46",
             cameraId: "01"
         },
         labels: [
@@ -18,7 +19,8 @@ export const MOCK_PROFILES: Profile[] = [
         displayName: "Batyr",
         confidenceThreshold: 0.8,
         lastSeen: {
-            timestamp: "2025-12-06T22:07:41.000Z",
+            date: "2025-12-06",
+            time: "22:07:41",
             cameraId: "03"
         },
         labels: [
@@ -30,7 +32,8 @@ export const MOCK_PROFILES: Profile[] = [
         displayName: "Yoselin",
         confidenceThreshold: 0.8,
         lastSeen: {
-            timestamp: "2025-12-05T00:07:41.000Z",
+            date: "2025-12-05",
+            time: "00:07:41",
             cameraId: "02"
         },
         labels: [
@@ -42,7 +45,8 @@ export const MOCK_PROFILES: Profile[] = [
         displayName: "Ethan",
         confidenceThreshold: 0.8,
         lastSeen: {
-            timestamp: "2025-12-05T00:07:41.000Z",
+            date: "2025-12-05",
+            time: "00:07:41",
             cameraId: "01"
         },
         labels: [
@@ -54,12 +58,14 @@ export const MOCK_PROFILES: Profile[] = [
         displayName: "Prof. Hughes",
         confidenceThreshold: 0.8,
         lastSeen: {
-            timestamp: "2025-12-01T23:06:41.000Z",
+            date: "2025-12-05",
+            time: "00:07:41",
             cameraId: "01"
         },
         labels: [
             "Professor", "Software Engineer"
-        ]
+        ],
+        description: "Project Mentor"
     },
 ];
 
