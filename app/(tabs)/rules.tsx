@@ -1,17 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import RuleCard from '@/components/ui/rule-card';
 import { Colors } from '@/constants/theme';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { MOCK_RULES } from '@/stores/rulesStore';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const MOCK_RULES = [
-  { id: '1', name: 'Rule #1', summary: 'CAMERA | PERSON' },
-  { id: '2', name: 'Rule #2', summary: 'CAMERA | PERSON' },
-  { id: '3', name: 'Night Alert', summary: 'CAMERA 1 | UNKNOWN' },
-  { id: '4', name: 'Front Door', summary: 'ALL CAMERAS | MOTION' },
-];
 
 const CAMERA_FILTERS = [
   { id: 'all', label: 'All' },
@@ -28,6 +23,14 @@ const PERSON_FILTERS = [
 export default function RulesScreen() {
   const [cameraFilter, setCameraFilter] = useState<string[]>(['all']);
   const [personFilter, setPersonFilter] = useState<string[]>(['all']);
+  const [, setRefresh] = useState(0);
+
+  // Refresh the list when screen comes into focus to show newly added rules
+  useFocusEffect(
+    useCallback(() => {
+      setRefresh(prev => prev + 1);
+    }, [])
+  );
 
   const toggleFilter = (filterId: string, filterType: 'camera' | 'person') => {
     const currentFilters = filterType === 'camera' ? cameraFilter : personFilter;
@@ -98,26 +101,14 @@ export default function RulesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => router.push('/rule-trigger')}>
-            <Card variant="lavender" style={styles.ruleCard}>
-              <View style={styles.ruleContent}>
-                <View style={styles.ruleAvatar}>
-                  <Text style={styles.ruleAvatarText}>A</Text>
-                </View>
-                <View style={styles.ruleInfo}>
-                  <Text style={styles.ruleName}>{item.name}</Text>
-                  <Text style={styles.ruleSummary}>{item.summary}</Text>
-                </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
+          <RuleCard rule={item}></RuleCard>
         )}
       />
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Add Action"
-          onPress={() => router.push('/rule-action')}
+          title="Add Rule"
+          onPress={() => router.push('../rule/new')}
           variant="outline"
         />
       </View>
