@@ -7,7 +7,7 @@ import { Colors } from '@/constants/theme';
 import { MOCK_CAMERAS } from '@/stores/camerasStore';
 import { MOCK_PROFILES } from '@/stores/profilesStore';
 import { addRule, getRuleById, updateRule } from '@/stores/rulesStore';
-import { Rule, RuleAction, RuleTrigger } from '@/types';
+import { Rule, RuleAction, RuleTrigger, WeekDay } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -31,10 +31,11 @@ const ACTION_TYPES = [
 ];
 
 const TIME_UNITS = [
-  { label: 'Seconds', value: 'second' },
   { label: 'Minutes', value: 'minute' },
   { label: 'Hours', value: 'hour' },
   { label: 'Days', value: 'day' },
+  { label: 'Weeks', value: 'week' },
+  { label: 'Years', value: 'year' },
 ];
 
 function generateId() {
@@ -62,10 +63,18 @@ export default function RuleEditor() {
   const [selectedProfile, setSelectedProfile] = useState<string>(MOCK_PROFILES[0]?.id || '');
   const [timeInterval, setTimeInterval] = useState<string>('5');
   const [timeUnit, setTimeUnit] = useState<string>('minute');
+  const [scheduledDays, setScheduledDays] = useState<WeekDay[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [scheduledTime, setScheduledTime] = useState<string>('13:00');
+  const days : WeekDay[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Step 3 - Actions state
   const [selectedActionType, setSelectedActionType] = useState<string>('send_notification');
   const [actionMessage, setActionMessage] = useState<string>('');
+  const [recordingDuration, setRecordingDuration] = useState<string>('5');
+  const [recordingUnit, setRecordingUnit] = useState<string>('minute');
+  const [selectedCameras, setSelectedCameras] = useState<string[]>([]);
+  const [disableCameraDuration, setDisableCameraDuration] = useState<string>('5');
+  const [disableCameraUnit, setDisableCameraUnit] = useState<string>('minute');
 
   // Step 1 - Camera selection state
   const [isGlobal, setIsGlobal] = useState<boolean>(false);
@@ -81,6 +90,7 @@ export default function RuleEditor() {
     const existing = getRuleById(id);
     if (existing) {
       setRule(existing);
+      setIsGlobal(existing.global || false);
       setStep(1);
     } else {
       Alert.alert('Not found', 'Rule not found, creating new.');
@@ -121,8 +131,11 @@ export default function RuleEditor() {
   const toggleGlobal = () => {
     setIsGlobal(!isGlobal);
     if (!isGlobal) {
-      // When enabling global, clear selected cameras
-      setRule(r => ({ ...r, cameras: [] }));
+      // When enabling global, clear selected cameras and set global property
+      setRule(r => ({ ...r, cameras: [], global: true }));
+    } else {
+      // When disabling global, unset global property
+      setRule(r => ({ ...r, global: false }));
     }
   };
 
@@ -140,7 +153,7 @@ export default function RuleEditor() {
           ? { type: 'face_detected', profileId: selectedProfile, isExclusive: false }
           : selectedTriggerType === 'time_interval'
             ? { type: 'time_interval', interval: parseInt(timeInterval) || 5, unit: timeUnit as any }
-            : { type: 'scheduled', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
+            : { type: 'scheduled', days: scheduledDays, time: scheduledTime };
 
     setRule(r => ({
       ...r,
@@ -163,10 +176,10 @@ export default function RuleEditor() {
         : selectedActionType === 'mark_event_important'
           ? { type: 'mark_event_important' }
           : selectedActionType === 'start_recording_clip'
-            ? { type: 'start_recording_clip', duration: 1, unit: 'minute' }
+            ? { type: 'start_recording_clip', duration: parseInt(recordingDuration) || 5, unit: recordingUnit as any }
             : selectedActionType === 'tag_event_for_followup'
               ? { type: 'tag_event_for_followup' }
-              : { type: 'disable_camera', duration: 5, unit: 'minute', notification: true };
+              : { type: 'disable_camera', cameraIds: selectedCameras.length > 0 ? selectedCameras : rule.cameras, duration: parseInt(disableCameraDuration) || 5, unit: disableCameraUnit as any, notification: true };
 
     setRule(r => ({
       ...r,
@@ -174,6 +187,11 @@ export default function RuleEditor() {
     }));
     setSelectedActionType('send_notification');
     setActionMessage('');
+    setRecordingDuration('5');
+    setRecordingUnit('minute');
+    setSelectedCameras([]);
+    setDisableCameraDuration('5');
+    setDisableCameraUnit('minute');
   };
 
   const removeAction = (index: number) => {
@@ -361,6 +379,37 @@ export default function RuleEditor() {
                 </View>
               )}
 
+              {selectedTriggerType === 'scheduled' && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Days</Text>
+                  <View style={styles.daysRow}>
+                    {days.map((day) => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[styles.dayButton, scheduledDays.includes(day) && styles.dayButtonActive]}
+                        onPress={() => {
+                          setScheduledDays(prev =>
+                            prev.includes(day)
+                              ? prev.filter(d => d !== day)
+                              : [...prev, day]
+                          );
+                        }}
+                      >
+                        <Text style={[styles.dayButtonText, scheduledDays.includes(day) && styles.dayButtonTextActive]}>
+                          {day.charAt(0)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Time</Text>
+                  <Input
+                    value={scheduledTime}
+                    onChangeText={setScheduledTime}
+                    placeholder="13:00"
+                  />
+                </View>
+              )}
+
               <Button 
                 title="Add Trigger"
                 onPress={addTrigger}
@@ -376,7 +425,7 @@ export default function RuleEditor() {
                         {trigger.type === 'motion_detected' && 'Motion Detected'}
                         {trigger.type === 'face_detected' && `Face Detected - ${MOCK_PROFILES.find(p => p.id === (trigger as any).profileId)?.displayName || 'Unknown'}`}
                         {trigger.type === 'time_interval' && `Every ${(trigger as any).interval} ${(trigger as any).unit}(s)`}
-                        {trigger.type === 'scheduled' && 'Scheduled'}
+                        {trigger.type === 'scheduled' && `Scheduled - ${((trigger as any).days || []).join(', ')} at ${(trigger as any).time}`}
                       </Text>
                       <TouchableOpacity onPress={() => removeTrigger(idx)}>
                         <IconSymbol name="trash.fill" size={20} color={Colors.error} />
@@ -413,6 +462,81 @@ export default function RuleEditor() {
                 </View>
               )}
 
+              {selectedActionType === 'start_recording_clip' && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Recording Duration</Text>
+                  <View style={styles.intervalRow}>
+                    <Input
+                      value={recordingDuration}
+                      onChangeText={setRecordingDuration}
+                      placeholder="Duration"
+                      style={styles.intervalInput}
+                    />
+                    <View style={styles.intervalDropdown}>
+                      <Dropdown
+                        value={recordingUnit}
+                        options={TIME_UNITS}
+                        onChange={setRecordingUnit}
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {selectedActionType === 'disable_camera' && (
+                <>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Select Cameras to Disable</Text>
+                    <View style={styles.cameraButtonGroup}>
+                      {MOCK_CAMERAS.map((camera) => (
+                        <TouchableOpacity
+                          key={camera.id}
+                          style={[
+                            styles.cameraButton,
+                            selectedCameras.includes(camera.id) && styles.cameraButtonSelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedCameras(prev =>
+                              prev.includes(camera.id)
+                                ? prev.filter(id => id !== camera.id)
+                                : [...prev, camera.id]
+                            );
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.cameraButtonText,
+                              selectedCameras.includes(camera.id) && styles.cameraButtonTextSelected,
+                            ]}
+                          >
+                            {camera.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Disable Duration</Text>
+                    <View style={styles.intervalRow}>
+                      <Input
+                        value={disableCameraDuration}
+                        onChangeText={setDisableCameraDuration}
+                        placeholder="Duration"
+                        style={styles.intervalInput}
+                      />
+                      <View style={styles.intervalDropdown}>
+                        <Dropdown
+                          value={disableCameraUnit}
+                          options={TIME_UNITS}
+                          onChange={setDisableCameraUnit}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </>
+              )}
+
               <Button 
                 title="Add Action"
                 onPress={addAction}
@@ -427,9 +551,9 @@ export default function RuleEditor() {
                       <Text style={styles.listItemText}>
                         {action.type === 'send_notification' && `Send: ${(action as any).message}`}
                         {action.type === 'mark_event_important' && 'Mark Event Important'}
-                        {action.type === 'start_recording_clip' && 'Start Recording'}
+                        {action.type === 'start_recording_clip' && `Start Recording - ${(action as any).duration} ${(action as any).unit}(s)`}
                         {action.type === 'tag_event_for_followup' && 'Tag for Follow-up'}
-                        {action.type === 'disable_camera' && 'Disable Camera'}
+                        {action.type === 'disable_camera' && `Disable Camera - ${(action as any).cameraIds.map((id: string) => MOCK_CAMERAS.find(c => c.id === id)?.name || id).join(', ')} for ${(action as any).duration} ${(action as any).unit}(s)`}
                       </Text>
                       <TouchableOpacity onPress={() => removeAction(idx)}>
                         <IconSymbol name="xmark.circle" size={20} color={Colors.error} />
@@ -633,6 +757,33 @@ const styles = StyleSheet.create({
   },
   intervalDropdown: {
     flex: 1,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  dayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dayButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textGray,
+  },
+  dayButtonTextActive: {
+    color: Colors.text,
   },
   listSection: {
     marginTop: 20,

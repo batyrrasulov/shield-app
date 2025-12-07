@@ -100,7 +100,7 @@ export type WeekDay =
 export type RuleTrigger =
   | { type: 'face_detected'; profileId: string, isExclusive: boolean }
   | { type: 'time_interval'; interval: number; unit: TimeUnit }
-  | { type: 'scheduled'; days: WeekDay[] }
+  | { type: 'scheduled'; days: WeekDay[]; time: string }
   | { type: 'motion_detected' };
 
 export type RuleAction = 
@@ -108,7 +108,7 @@ export type RuleAction =
   | {type: 'mark_event_important';}
   | {type: 'start_recording_clip'; duration: number; unit: TimeUnit}
   | {type: 'tag_event_for_followup';}
-  | {type: 'disable_camera'; duration: number; unit: TimeUnit; notification: boolean}
+  | {type: 'disable_camera'; cameraIds: string[]; duration: number; unit: TimeUnit; notification: boolean}
 
 
 export interface Rule {
