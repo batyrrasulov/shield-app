@@ -96,7 +96,7 @@ export type WeekDay =
   | 'Sat';
 
 export type RuleTrigger =
-  | { type: 'face_detected'; profileId: string }
+  | { type: 'face_detected'; profileId: string, isExclusive: boolean }
   | { type: 'time_interval'; interval: number; unit: TimeUnit }
   | { type: 'scheduled'; days: WeekDay[] }
   | { type: 'motion_detected' };
@@ -113,11 +113,11 @@ export interface Rule {
   id: string;
   name: string;
   description?: string;
+  cameras: string[];
   triggers: RuleTrigger[];
   actions: RuleAction[];
   enabled: boolean;
   priority?: number;
-  exclusive?: boolean;
   global?: boolean;
 }
 //* -----------------------------

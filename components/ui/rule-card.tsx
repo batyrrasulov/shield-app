@@ -14,7 +14,7 @@ export default function RuleCard({ rule } : RuleCardProps) {
     return (
         <TouchableOpacity onPress={() => router.push(`../rule/${rule.id}`)}>
         <Card variant="lavender" style={styles.ruleCard}>
-            <View style={styles.ruleContent}>
+            <View style={styles.ruleContent}> 
             <View style={styles.ruleAvatar}>
                 <Text style={styles.ruleAvatarText}>A</Text>
             </View>

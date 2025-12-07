@@ -42,6 +42,7 @@ export default function RuleEditor() {
     id: '',
     name: '',
     description: '',
+    cameras: [],
     triggers: [],
     actions: [],
     enabled: true,
@@ -100,7 +101,7 @@ export default function RuleEditor() {
       selectedTriggerType === 'motion_detected'
         ? { type: 'motion_detected' }
         : selectedTriggerType === 'face_detected'
-          ? { type: 'face_detected', profileId: 'profile-1' }
+          ? { type: 'face_detected', profileId: 'profile-1', isExclusive: false }
           : selectedTriggerType === 'time_interval'
             ? { type: 'time_interval', interval: 5, unit: 'minute' }
             : { type: 'scheduled', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
