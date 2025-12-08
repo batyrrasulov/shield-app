@@ -1,28 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dropdown } from '@/components/ui/dropdown';
 import RuleCard from '@/components/ui/rule-card';
 import { Colors } from '@/constants/theme';
+import { MOCK_CAMERAS } from '@/stores/camerasStore';
+import { MOCK_PROFILES } from '@/stores/profilesStore';
 import { MOCK_RULES } from '@/stores/rulesStore';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const CAMERA_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'camera-1', label: 'Camera 1' },
-  { id: 'camera-2', label: 'Camera 2' },
-];
-
-const PERSON_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'person-1', label: 'Person 1' },
-  { id: 'person-2', label: 'Person 2' },
-];
+// ...existing code...
 
 export default function RulesScreen() {
-  const [cameraFilter, setCameraFilter] = useState<string[]>(['all']);
-  const [personFilter, setPersonFilter] = useState<string[]>(['all']);
+  const [cameraFilter, setCameraFilter] = useState<string>('all');
+  const [personFilter, setPersonFilter] = useState<string>('all');
   const [, setRefresh] = useState(0);
 
   // Refresh the list when screen comes into focus to show newly added rules
@@ -32,19 +25,20 @@ export default function RulesScreen() {
     }, [])
   );
 
-  const toggleFilter = (filterId: string, filterType: 'camera' | 'person') => {
-    const currentFilters = filterType === 'camera' ? cameraFilter : personFilter;
-    const setFilters = filterType === 'camera' ? setCameraFilter : setPersonFilter;
-    
-    if (filterId === 'all') {
-      setFilters(['all']);
-    } else {
-      const newFilters = currentFilters.includes(filterId)
-        ? currentFilters.filter(f => f !== filterId)
-        : [...currentFilters.filter(f => f !== 'all'), filterId];
-      setFilters(newFilters.length === 0 ? ['all'] : newFilters);
-    }
-  };
+  // ...existing code...
+
+  // Filtering logic
+  const filteredRules = MOCK_RULES.filter(rule => {
+    // Camera filter
+    const cameraMatch = cameraFilter === 'all' || rule.global === true || rule.cameras.includes(cameraFilter);
+
+    // Person filter
+    const personMatch = personFilter === 'all' || rule.triggers.some(trigger =>
+      trigger.type === 'face_detected' && trigger.profileId === personFilter
+    );
+
+    return cameraMatch && personMatch;
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -55,49 +49,24 @@ export default function RulesScreen() {
       <View style={styles.filters}>
         <Card style={styles.filterSection}>
           <Text style={styles.filterTitle}>CAMERA</Text>
-          {CAMERA_FILTERS.map(filter => (
-            <TouchableOpacity
-              key={filter.id}
-              style={styles.checkbox}
-              onPress={() => toggleFilter(filter.id, 'camera')}
-            >
-              <View style={[
-                styles.checkboxBox,
-                cameraFilter.includes(filter.id) && styles.checkboxBoxChecked
-              ]}>
-                {cameraFilter.includes(filter.id) && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{filter.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <Dropdown
+            options={[{ label: 'All', value: 'all' }, ...MOCK_CAMERAS.map(c => ({ label: c.name, value: c.id }))]}
+            value={cameraFilter}
+            onChange={setCameraFilter}
+          />
         </Card>
-
         <Card style={styles.filterSection}>
           <Text style={styles.filterTitle}>PERSON</Text>
-          {PERSON_FILTERS.map(filter => (
-            <TouchableOpacity
-              key={filter.id}
-              style={styles.checkbox}
-              onPress={() => toggleFilter(filter.id, 'person')}
-            >
-              <View style={[
-                styles.checkboxBox,
-                personFilter.includes(filter.id) && styles.checkboxBoxChecked
-              ]}>
-                {personFilter.includes(filter.id) && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{filter.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <Dropdown
+            options={[{ label: 'All', value: 'all' }, ...MOCK_PROFILES.map(p => ({ label: p.displayName, value: p.id }))]}
+            value={personFilter}
+            onChange={setPersonFilter}
+          />
         </Card>
       </View>
 
       <FlatList
-        data={MOCK_RULES}
+        data={filteredRules}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
@@ -146,34 +115,7 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     marginBottom: 8,
   },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxBoxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkmark: {
-    color: Colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: Colors.textDark,
-  },
+  // ...existing code...
   list: {
     padding: 20,
     gap: 12,

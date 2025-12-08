@@ -97,7 +97,7 @@ export default function RuleEditor() {
       setRule(r => ({ ...r, id: generateId() }));
     }
     setLoading(false);
-  }, [id]);
+  }, [id, isNew]);
 
   const handleNextStep = () => {
     if (step === 1) {
