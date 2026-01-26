@@ -6,7 +6,7 @@ export const MOCK_RULES: Rule[] = [
     id: '01',
     name: 'Motion Alert',
     description: 'Alert for any motion',
-    cameras: [],
+    cameras: ["01", "02"],
     triggers: [{ type: 'motion_detected' }],
     actions: [{ type: 'send_notification', message: 'Alert Alert!' }],
     enabled: true,
@@ -19,6 +19,7 @@ export const MOCK_RULES: Rule[] = [
     triggers: [{ type: 'time_interval', interval: 10, unit: 'minute' }],
     actions: [{ type: 'start_recording_clip', duration: 1, unit: 'minute' }],
     enabled: true,
+    global: true
   },
 ];
 

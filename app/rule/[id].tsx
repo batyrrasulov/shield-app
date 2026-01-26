@@ -97,7 +97,7 @@ export default function RuleEditor() {
       setRule(r => ({ ...r, id: generateId() }));
     }
     setLoading(false);
-  }, [id]);
+  }, [id, isNew]);
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -556,7 +556,7 @@ export default function RuleEditor() {
                         {action.type === 'disable_camera' && `Disable Camera - ${(action as any).cameraIds.map((id: string) => MOCK_CAMERAS.find(c => c.id === id)?.name || id).join(', ')} for ${(action as any).duration} ${(action as any).unit}(s)`}
                       </Text>
                       <TouchableOpacity onPress={() => removeAction(idx)}>
-                        <IconSymbol name="xmark.circle" size={20} color={Colors.error} />
+                        <IconSymbol name="trash.fill" size={20} color={Colors.error} />
                       </TouchableOpacity>
                     </View>
                   ))}
