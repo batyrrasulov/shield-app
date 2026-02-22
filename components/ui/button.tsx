@@ -86,6 +86,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   buttonTextOutline: {
-    color: Colors.text,
+    color: Colors.textDark,
   },
 });

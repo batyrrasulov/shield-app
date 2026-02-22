@@ -10,9 +10,19 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.volkelkevin9.shieldapp503aVQ"
+      "bundleIdentifier": "com.volkelkevin9.shieldapp503aVQ",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow access to the camera to enroll profiles.",
+        "NSPhotoLibraryUsageDescription": "Allow access to your photos to enroll profiles.",
+        "NSPhotoLibraryAddUsageDescription": "Allow saving enrollment photos."
+      }
     },
     "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

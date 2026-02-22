@@ -5,19 +5,22 @@ export const MOCK_CAMERAS: Camera[] = [
         id: "01",
         name: "Living Room",
         status: "online",
-        location: "Living Room"
+        location: "Living Room",
+        streamRef: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
     },
     {
         id: "02",
         name: "Backyard",
         status: "online",
-        location: "Backyard Door"
+        location: "Backyard Door",
+        streamRef: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8"
     },
     {
         id: "03",
         name: "Front Door",
         status: "online",
-        location: "Front Door"
+        location: "Front Door",
+        streamRef: "https://test-streams.mux.dev/pts_shift/master.m3u8"
     },
 ]
 

@@ -36,8 +36,31 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# editor swap files
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# duplicate vscode folder
+_vscode/
+
+# test/smoke scripts
+scripts/smoke-*.ts
+
+# example/unused components
+components/hello-wave.tsx
+components/parallax-scroll-view.tsx
+components/external-link.tsx
+components/themed-*.tsx
+components/haptic-tab.tsx
+
 app-example
 
 # generated native folders
 /ios
 /android
+
+# local hub data
+/api/data/
+/api/uploads/

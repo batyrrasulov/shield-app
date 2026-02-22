@@ -13,8 +13,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ProfileDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const profile = findProfileById(id);
-    if (profile == undefined) {
-        return;
+    if (profile === undefined) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <View style={styles.emptyState}
+                >
+                    <Text style={styles.emptyTitle}>Profile not found</Text>
+                    <Button title="Back" onPress={() => router.back()} variant="outline" />
+                </View>
+            </SafeAreaView>
+        );
     }
 
     return (
@@ -32,7 +40,10 @@ export default function ProfileDetailScreen() {
                     <Text style={styles.name}>{profile.displayName}</Text>
 
                     <View style={styles.actions}>
-                        <TouchableOpacity style={styles.actionButton}>
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => router.push(`/enroll/${profile.id}`)}
+                        >
                             <IconSymbol name="camera.fill" size={28} color={Colors.text} />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.actionButton}>
@@ -55,14 +66,14 @@ export default function ProfileDetailScreen() {
 
                 <Button
                     title="More Sightings"
-                    onPress={() => { }}
+                    onPress={() => router.push(`/sightings/${profile.id}`)}
                     variant="outline"
                     style={styles.button}
                 />
 
                 <Button
                     title="New Rule"
-                    onPress={() => { }}
+                    onPress={() => router.push('/rule/new')}
                     variant="outline"
                     style={styles.button}
                 />
@@ -130,6 +141,18 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     button: {
+        marginBottom: 12,
+    },
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: Colors.text,
         marginBottom: 12,
     },
 });

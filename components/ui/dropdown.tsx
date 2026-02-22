@@ -1,6 +1,15 @@
 import { Colors } from '@/constants/theme';
 import React, { useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import {
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    View,
+    ViewStyle,
+} from 'react-native';
 import { IconSymbol } from './icon-symbol';
 
 interface DropdownOption {
@@ -15,6 +24,10 @@ interface DropdownProps {
   onChange: (value: string) => void;
   placeholder?: string;
   containerStyle?: ViewStyle;
+  labelStyle?: TextStyle;
+  selectorStyle?: ViewStyle;
+  selectorTextStyle?: TextStyle;
+  iconColor?: string;
 }
 
 export function Dropdown({ 
@@ -23,24 +36,28 @@ export function Dropdown({
   options, 
   onChange, 
   placeholder = 'Select...',
-  containerStyle 
+  containerStyle,
+  labelStyle,
+  selectorStyle,
+  selectorTextStyle,
+  iconColor,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(opt => opt.value === value);
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       
       <TouchableOpacity
-        style={styles.selector}
+        style={[styles.selector, selectorStyle]}
         onPress={() => setIsOpen(true)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.selectorText, !selectedOption && styles.placeholder]}>
+        <Text style={[styles.selectorText, selectorTextStyle, !selectedOption && styles.placeholder]}>
           {selectedOption?.label || placeholder}
         </Text>
-        <IconSymbol name="chevron.down" size={20} color={Colors.textGray} />
+        <IconSymbol name="chevron.down" size={20} color={iconColor ?? Colors.textGray} />
       </TouchableOpacity>
 
       <Modal

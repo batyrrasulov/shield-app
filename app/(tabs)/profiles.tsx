@@ -50,7 +50,9 @@ export default function ProfilesScreen() {
                 <Avatar name={item.displayName} size={50} />
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{item.displayName}</Text>
-                  <Text style={styles.profileDescription}>{item.description}</Text>
+                  {item.description ? (
+                    <Text style={styles.profileDescription}>{item.description}</Text>
+                  ) : null}
                 </View>
               </View>
             </Card>
