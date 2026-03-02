@@ -1,6 +1,8 @@
+import { clearHubConnection } from '@/api/hub-connection';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Colors } from '@/constants/theme';
+import { clearAuthSession } from '@/stores/sessionStore';
 import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const handleLogOut = () => {
+    clearHubConnection();
+    clearAuthSession();
     router.replace('/sign-in');
   };
 

@@ -1,3 +1,4 @@
+import { setIsAuthenticated } from '@/stores/sessionStore';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,8 +17,9 @@ export default function SignInScreen() {
     setLoading(true);
     // later we need to implement actual auth with local hub
     setTimeout(() => {
+      setIsAuthenticated(true);
       setLoading(false);
-      router.replace('/(tabs)');
+      router.replace('/hub-discovery');
     }, 1000);
   };
 

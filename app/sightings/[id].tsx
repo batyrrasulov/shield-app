@@ -1,12 +1,9 @@
-import { getEvents } from '@/api/hub';
+import { getCameras, getEvents, getProfileById } from '@/api/hub';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { getCameraById } from '@/stores/camerasStore';
-import { findProfileById } from '@/stores/profilesStore';
-import { getSightingsByProfile } from '@/stores/sightingsStore';
-import { DetectionEvent } from '@/types';
+import { Camera, DetectionEvent, Profile } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -22,8 +19,10 @@ const formatTimestamp = (timestamp: string) => {
 
 export default function SightingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const profile = id ? findProfileById(id) : undefined;
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [cameras, setCameras] = useState<Camera[]>([]);
   const [sightings, setSightings] = useState<DetectionEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,21 +32,36 @@ export default function SightingsScreen() {
       if (!id) {
         return;
       }
+      setIsLoading(true);
       setLoadError(null);
       try {
-        const events = await getEvents({ profileId: id });
-        if (isMounted) {
-          setSightings(events);
+        const [profileData, camerasData, events] = await Promise.all([
+          getProfileById(id),
+          getCameras(),
+          getEvents({ profileId: id }),
+        ]);
+        if (!isMounted) {
+          return;
         }
+        setProfile(profileData);
+        setCameras(camerasData);
+        setSightings(events);
       } catch {
+        if (!isMounted) {
+          return;
+        }
+        setProfile(null);
+        setCameras([]);
+        setSightings([]);
+        setLoadError('Failed to load sightings from the hub.');
+      } finally {
         if (isMounted) {
-          setSightings(getSightingsByProfile(id));
-          setLoadError('Using cached sightings.');
+          setIsLoading(false);
         }
       }
     };
 
-    load();
+    void load();
 
     return () => {
       isMounted = false;
@@ -64,7 +78,8 @@ export default function SightingsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Profile not found</Text>
+          <Text style={styles.emptyTitle}>{isLoading ? 'Loading profile...' : 'Profile not found'}</Text>
+          {loadError ? <Text style={styles.statusText}>{loadError}</Text> : null}
           <Button title="Back" onPress={() => router.back()} variant="outline" />
         </View>
       </SafeAreaView>
@@ -91,7 +106,7 @@ export default function SightingsScreen() {
           <Card style={styles.sightingCard}>
             <Text style={styles.sightingTime}>{formatTimestamp(item.timestamp)}</Text>
             <Text style={styles.sightingCamera}>
-              {getCameraById(item.cameraId)?.name || 'Unknown Camera'}
+              {cameras.find((camera) => camera.id === item.cameraId)?.name || 'Unknown Camera'}
             </Text>
             <Text style={styles.sightingMeta}>Confidence: {item.confidence ?? 'N/A'}</Text>
           </Card>

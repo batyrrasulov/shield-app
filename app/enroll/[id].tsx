@@ -1,14 +1,14 @@
-import { uploadEnrollmentPhotos } from '@/api/hub';
+import { getProfileById, uploadEnrollmentPhotos } from '@/api/hub';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { findProfileById } from '@/stores/profilesStore';
+import { Profile } from '@/types';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,10 +21,47 @@ type EnrollmentPhoto = {
 
 export default function EnrollmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const profile = id ? findProfileById(id) : undefined;
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<EnrollmentPhoto[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      if (!id) {
+        setProfile(null);
+        return;
+      }
+
+      setIsLoadingProfile(true);
+      setProfileError(null);
+      try {
+        const profileData = await getProfileById(id);
+        if (isMounted) {
+          setProfile(profileData);
+        }
+      } catch {
+        if (isMounted) {
+          setProfile(null);
+          setProfileError('Failed to load profile from the hub.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   const appendAssets = (assets: ImagePicker.ImagePickerAsset[]) => {
     const newPhotos = assets.map(asset => ({
@@ -102,7 +139,8 @@ export default function EnrollmentScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Profile not found</Text>
+          <Text style={styles.emptyTitle}>{isLoadingProfile ? 'Loading profile...' : 'Profile not found'}</Text>
+          {profileError ? <Text style={styles.emptyText}>{profileError}</Text> : null}
           <Button title="Back" onPress={() => router.back()} variant="outline" />
         </View>
       </SafeAreaView>

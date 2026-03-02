@@ -30,6 +30,14 @@
         "image": "latest"
       }
     },
+    "preview-apk": {
+      "extends": "preview",
+      "android": {
+        "image": "latest",
+        "credentialsSource": "local",
+        "buildType": "apk"
+      }
+    },
     "production": {
       "channel": "production",
       "autoIncrement": true,

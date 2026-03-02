@@ -133,3 +133,32 @@ export interface SystemHealth {
     offline: number;
   };
 }
+
+export interface DiscoveredService {
+  name: string;
+  discoveredAt: string;
+}
+
+export interface ResolvedHubCandidate {
+  name: string;
+  fullName: string;
+  host: string;
+  addresses: string[];
+  port: number;
+  txt: Record<string, string>;
+  apiBasePath: string;
+  resolvedAt: string;
+}
+
+export interface VerifiedHub {
+  id: string;
+  name: string;
+  fullName: string;
+  host: string;
+  ip: string;
+  port: number;
+  baseUrl: string;
+  apiBasePath: string;
+  txt: Record<string, string>;
+  verifiedAt: string;
+}

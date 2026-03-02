@@ -1,12 +1,12 @@
+import { getCameras, getRecordingById } from '@/api/hub';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { getCameraById } from '@/stores/camerasStore';
-import { getRecordingById } from '@/stores/recordingsStore';
+import { Camera, Recording } from '@/types';
 import { ResizeMode, Video } from 'expo-av';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,15 +20,71 @@ const formatTimestamp = (timestamp: string) => {
 
 export default function PlaybackDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recording = id ? getRecordingById(id) : undefined;
+  const [recording, setRecording] = useState<Recording | null>(null);
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      if (!id) {
+        setRecording(null);
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const [recordingData, camerasData] = await Promise.all([
+          getRecordingById(id),
+          getCameras(),
+        ]);
+        if (!isMounted) {
+          return;
+        }
+
+        setRecording(recordingData);
+        setCameras(camerasData);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+        setRecording(null);
+        setCameras([]);
+        setLoadError('Failed to load recording details from the hub.');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const cameraName = useMemo(
+    () =>
+      recording
+        ? (cameras.find((camera) => camera.id === recording.cameraId)?.name ?? 'Unknown Camera')
+        : 'Unknown Camera',
+    [cameras, recording],
+  );
 
   if (!recording) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Recording not found</Text>
+          <Text style={styles.emptyTitle}>{isLoading ? 'Loading recording...' : 'Recording not found'}</Text>
+          {loadError ? <Text style={styles.emptyMessage}>{loadError}</Text> : null}
           <Button title="Back" onPress={() => router.back()} variant="outline" />
         </View>
       </SafeAreaView>
@@ -44,6 +100,7 @@ export default function PlaybackDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.title}>Playback</Text>
         </View>
+        {loadError ? <Text style={styles.statusText}>{loadError}</Text> : null}
       </View>
       <ScrollView contentContainerStyle={styles.content}>
 
@@ -75,9 +132,7 @@ export default function PlaybackDetailScreen() {
 
         <Card style={styles.detailsCard}>
           <Text style={styles.detailLabel}>Camera</Text>
-          <Text style={styles.detailValue}>
-            {getCameraById(recording.cameraId)?.name || 'Unknown Camera'}
-          </Text>
+          <Text style={styles.detailValue}>{cameraName}</Text>
 
           <Text style={styles.detailLabel}>Start</Text>
           <Text style={styles.detailValue}>{formatTimestamp(recording.startTimestamp)}</Text>
@@ -165,5 +220,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 12,
+  },
+  emptyMessage: {
+    color: Colors.textGray,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  statusText: {
+    marginTop: 6,
+    color: Colors.textGray,
+    fontSize: 12,
   },
 });

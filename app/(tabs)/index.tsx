@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Dropdown } from '@/components/ui/dropdown';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { getCameraById, MOCK_CAMERAS } from '@/stores/camerasStore';
 import { Camera } from '@/types';
 import { ResizeMode, Video } from 'expo-av';
 import { router } from 'expo-router';
@@ -12,33 +11,50 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LiveScreen() {
-  const [selectedCameraId, setSelectedCameraId] = useState('01');
-  const [cameras, setCameras] = useState<Camera[]>(MOCK_CAMERAS);
-  const [selectedCamera, setSelectedCamera] = useState(MOCK_CAMERAS[0]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingLoading, setRecordingLoading] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const videoRef = useRef<Video>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadCameras = async () => {
+      setCameraLoading(true);
       setCameraError(null);
       try {
         const data = await getCameras();
-        if (isMounted && data.length > 0) {
-          setCameras(data);
+        if (!isMounted) {
+          return;
+        }
+
+        setCameras(data);
+        if (data.length > 0) {
           setSelectedCameraId(data[0].id);
           setSelectedCamera(data[0]);
+        } else {
+          setSelectedCameraId('');
+          setSelectedCamera(null);
         }
       } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setCameras([]);
+        setSelectedCameraId('');
+        setSelectedCamera(null);
+        setCameraError('Failed to load cameras from the hub.');
+      } finally {
         if (isMounted) {
-          setCameras(MOCK_CAMERAS);
-          setCameraError('Using cached cameras.');
+          setCameraLoading(false);
         }
       }
     };
@@ -52,13 +68,13 @@ export default function LiveScreen() {
 
   const handleCameraChange = (newId : string) => {
     setSelectedCameraId(newId);
-    const newCamera = cameras.find(camera => camera.id === newId) ?? getCameraById(newId);
-    if (newCamera !== undefined) setSelectedCamera(newCamera);
+    const newCamera = cameras.find(camera => camera.id === newId) ?? null;
+    setSelectedCamera(newCamera);
     setStreamError(null);
     setIsPlaying(false);
   }
 
-  const CAMERA_DROPDOWN : {value: string, label: string}[] = cameras.map(camera => ({ label: camera.name, value: camera.id }))
+  const CAMERA_DROPDOWN : {value: string, label: string}[] = cameras.map(camera => ({ label: camera.name, value: camera.id }));
   const streamUrl = useMemo(() => selectedCamera?.streamRef, [selectedCamera]);
 
   const toggleRecording = async () => {
@@ -94,12 +110,13 @@ export default function LiveScreen() {
 
         <View style={styles.cameraHeader}>
           <Text style={styles.cameraName}>
-            {selectedCamera.name}
+            {selectedCamera?.name ?? 'No cameras'}
           </Text>
           <TouchableOpacity style={styles.editButton}>
             <IconSymbol name="pencil" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
+        {cameraLoading ? <Text style={styles.statusText}>Loading cameras...</Text> : null}
         {cameraError ? <Text style={styles.statusText}>{cameraError}</Text> : null}
 
         <View style={styles.videoContainer}>
@@ -168,6 +185,7 @@ export default function LiveScreen() {
           title="View Playback"
           onPress={() => router.push(`/playback?cameraId=${selectedCameraId}`)}
           variant="primary"
+          disabled={!selectedCameraId}
           style={styles.playbackButton}
         />
       </ScrollView>

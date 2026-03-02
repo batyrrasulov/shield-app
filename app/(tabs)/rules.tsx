@@ -1,13 +1,12 @@
+import { getCameras, getProfiles, getRules } from '@/api/hub';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dropdown } from '@/components/ui/dropdown';
 import RuleCard from '@/components/ui/rule-card';
 import { Colors } from '@/constants/theme';
-import { MOCK_CAMERAS } from '@/stores/camerasStore';
-import { MOCK_PROFILES } from '@/stores/profilesStore';
-import { MOCK_RULES } from '@/stores/rulesStore';
+import { Camera, Profile, Rule } from '@/types';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,41 +15,67 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function RulesScreen() {
   const [cameraFilter, setCameraFilter] = useState<string>('all');
   const [personFilter, setPersonFilter] = useState<string>('all');
-  const [, setRefresh] = useState(0);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Refresh the list when screen comes into focus to show newly added rules
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [rulesData, camerasData, profilesData] = await Promise.all([
+        getRules(),
+        getCameras(),
+        getProfiles(),
+      ]);
+      setRules(rulesData);
+      setCameras(camerasData);
+      setProfiles(profilesData);
+    } catch {
+      setRules([]);
+      setCameras([]);
+      setProfiles([]);
+      setLoadError('Failed to load rules from the hub.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      setRefresh(prev => prev + 1);
-    }, [])
+      void loadData();
+    }, [loadData])
   );
 
-  // ...existing code...
-
-  // Filtering logic
-  const filteredRules = MOCK_RULES.filter(rule => {
-    // Camera filter
-    const cameraMatch = cameraFilter === 'all' || rule.global === true || rule.cameras.includes(cameraFilter);
-
-    // Person filter
-    const personMatch = personFilter === 'all' || rule.triggers.some(trigger =>
-      trigger.type === 'face_detected' && trigger.profileId === personFilter
-    );
-
-    return cameraMatch && personMatch;
-  });
+  const filteredRules = useMemo(
+    () =>
+      rules.filter((rule) => {
+        const cameraMatch = cameraFilter === 'all' || rule.global === true || rule.cameras.includes(cameraFilter);
+        const personMatch =
+          personFilter === 'all' ||
+          rule.triggers.some(
+            (trigger) => trigger.type === 'face_detected' && trigger.profileId === personFilter,
+          );
+        return cameraMatch && personMatch;
+      }),
+    [rules, cameraFilter, personFilter],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Rules</Text>
+        {isLoading ? <Text style={styles.statusText}>Loading...</Text> : null}
+        {loadError ? <Text style={styles.statusText}>{loadError}</Text> : null}
       </View>
 
       <View style={styles.filters}>
         <Card style={styles.filterSection}>
           <Text style={styles.filterTitle}>CAMERA</Text>
           <Dropdown
-            options={[{ label: 'All', value: 'all' }, ...MOCK_CAMERAS.map(c => ({ label: c.name, value: c.id }))]}
+            options={[{ label: 'All', value: 'all' }, ...cameras.map(c => ({ label: c.name, value: c.id }))]}
             value={cameraFilter}
             onChange={setCameraFilter}
           />
@@ -58,7 +83,7 @@ export default function RulesScreen() {
         <Card style={styles.filterSection}>
           <Text style={styles.filterTitle}>PERSON</Text>
           <Dropdown
-            options={[{ label: 'All', value: 'all' }, ...MOCK_PROFILES.map(p => ({ label: p.displayName, value: p.id }))]}
+            options={[{ label: 'All', value: 'all' }, ...profiles.map(p => ({ label: p.displayName, value: p.id }))]}
             value={personFilter}
             onChange={setPersonFilter}
           />
@@ -72,6 +97,7 @@ export default function RulesScreen() {
         renderItem={({ item }) => (
           <RuleCard rule={item}></RuleCard>
         )}
+        ListEmptyComponent={<Text style={styles.emptyText}>No rules found.</Text>}
       />
 
       <View style={styles.buttonContainer}>
@@ -115,10 +141,20 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     marginBottom: 8,
   },
+  statusText: {
+    color: Colors.textGray,
+    fontSize: 12,
+    marginTop: 6,
+  },
   // ...existing code...
   list: {
     padding: 20,
     gap: 12,
+  },
+  emptyText: {
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginTop: 20,
   },
   buttonContainer: {
     paddingHorizontal: 20,

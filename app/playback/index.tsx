@@ -4,8 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Dropdown } from '@/components/ui/dropdown';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { getCameraById, MOCK_CAMERAS } from '@/stores/camerasStore';
-import { MOCK_RECORDINGS } from '@/stores/recordingsStore';
 import { Camera, Recording } from '@/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -27,8 +25,8 @@ export default function PlaybackScreen() {
   const [dateFilter, setDateFilter] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [recordings, setRecordings] = useState<Recording[]>(MOCK_RECORDINGS);
-  const [cameras, setCameras] = useState<Camera[]>(MOCK_CAMERAS);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [cameras, setCameras] = useState<Camera[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -46,8 +44,8 @@ export default function PlaybackScreen() {
         }
       } catch {
         if (isMounted) {
-          setRecordings(MOCK_RECORDINGS);
-          setLoadError('Using cached data.');
+          setRecordings([]);
+          setLoadError('Failed to load recordings from the hub.');
         }
       } finally {
         if (isMounted) {
@@ -60,13 +58,13 @@ export default function PlaybackScreen() {
       setCameraError(null);
       try {
         const data = await getCameras();
-        if (isMounted && data.length > 0) {
+        if (isMounted) {
           setCameras(data);
         }
       } catch {
         if (isMounted) {
-          setCameras(MOCK_CAMERAS);
-          setCameraError('Using cached cameras.');
+          setCameras([]);
+          setCameraError('Failed to load cameras from the hub.');
         }
       }
     };
@@ -96,9 +94,7 @@ export default function PlaybackScreen() {
   }, [cameras]);
 
   const resolveCameraName = (cameraId: string) => {
-    return cameras.find(camera => camera.id === cameraId)?.name
-      ?? getCameraById(cameraId)?.name
-      ?? 'Unknown Camera';
+    return cameras.find(camera => camera.id === cameraId)?.name ?? 'Unknown Camera';
   };
 
   const formatDate = (date: Date) => date.toISOString().slice(0, 10);

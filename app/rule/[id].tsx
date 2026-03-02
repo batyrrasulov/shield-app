@@ -1,13 +1,11 @@
+import { createRuleWithDetails, getCameras, getProfiles, getRuleById } from '@/api/hub';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dropdown } from '@/components/ui/dropdown';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
-import { MOCK_CAMERAS } from '@/stores/camerasStore';
-import { MOCK_PROFILES } from '@/stores/profilesStore';
-import { addRule, getRuleById, updateRule } from '@/stores/rulesStore';
-import { Rule, RuleAction, RuleTrigger, WeekDay } from '@/types';
+import { Camera, Profile, Rule, RuleAction, RuleTrigger, WeekDay } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -47,7 +45,10 @@ export default function RuleEditor() {
   const isNew = id === 'new';
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [rule, setRule] = useState<Rule>({
     id: '',
     name: '',
@@ -60,7 +61,7 @@ export default function RuleEditor() {
 
   // Step 2 - Triggers state
   const [selectedTriggerType, setSelectedTriggerType] = useState<string>('motion_detected');
-  const [selectedProfile, setSelectedProfile] = useState<string>(MOCK_PROFILES[0]?.id || '');
+  const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [timeInterval, setTimeInterval] = useState<string>('5');
   const [timeUnit, setTimeUnit] = useState<string>('minute');
   const [scheduledDays, setScheduledDays] = useState<WeekDay[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
@@ -80,23 +81,68 @@ export default function RuleEditor() {
   const [isGlobal, setIsGlobal] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!id) return;
-    if (isNew) {
-      setRule(r => ({ ...r, id: generateId() }));
-      setLoading(false);
-      return;
-    }
-    // load existing rule from shared store
-    const existing = getRuleById(id);
-    if (existing) {
-      setRule(existing);
-      setIsGlobal(existing.global || false);
-      setStep(1);
-    } else {
-      Alert.alert('Not found', 'Rule not found, creating new.');
-      setRule(r => ({ ...r, id: generateId() }));
-    }
-    setLoading(false);
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!id) {
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const [cameraData, profileData] = await Promise.all([
+          getCameras(),
+          getProfiles(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCameras(cameraData);
+        setProfiles(profileData);
+        if (profileData.length > 0) {
+          setSelectedProfile(profileData[0].id);
+        }
+
+        if (isNew) {
+          setRule((current) => ({ ...current, id: generateId() }));
+          return;
+        }
+
+        const existing = await getRuleById(id);
+        if (!isMounted) {
+          return;
+        }
+
+        if (existing) {
+          setRule(existing);
+          setIsGlobal(existing.global || false);
+          setStep(1);
+        } else {
+          Alert.alert('Not found', 'Rule not found, creating new.');
+          setRule((current) => ({ ...current, id: generateId() }));
+        }
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setCameras([]);
+        setProfiles([]);
+        Alert.alert('Load error', 'Failed to load rule editor data from the hub.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, isNew]);
 
   const handleNextStep = () => {
@@ -146,6 +192,11 @@ export default function RuleEditor() {
   };
 
   const addTrigger = () => {
+    if (selectedTriggerType === 'face_detected' && !selectedProfile) {
+      Alert.alert('Validation', 'Select a profile for face-detected trigger.');
+      return;
+    }
+
     const newTrigger: RuleTrigger =
       selectedTriggerType === 'motion_detected'
         ? { type: 'motion_detected' }
@@ -201,28 +252,42 @@ export default function RuleEditor() {
     }));
   };
 
-  const save = () => {
-    if (!rule.name.trim()) {
+  const save = async () => {
+    const ruleToSave: Rule = {
+      ...rule,
+      global: isGlobal,
+      cameras: isGlobal ? [] : rule.cameras,
+    };
+
+    if (!ruleToSave.name.trim()) {
       Alert.alert('Validation', 'Name is required');
       return;
     }
-    if (rule.triggers.length === 0) {
+    if (ruleToSave.triggers.length === 0) {
       Alert.alert('Validation', 'At least one trigger is required');
       return;
     }
-    if (rule.actions.length === 0) {
+    if (ruleToSave.actions.length === 0) {
       Alert.alert('Validation', 'At least one action is required');
       return;
     }
 
-    // Save to shared store - will update Rules page automatically
-    if (isNew) {
-      addRule(rule);
-    } else {
-      updateRule(rule);
+    if (!isNew) {
+      Alert.alert('Not supported', 'Rule updates are not supported by the current API.');
+      return;
     }
-    
-    router.back();
+
+    setSaving(true);
+    try {
+      await createRuleWithDetails({
+        rule: ruleToSave,
+      });
+      router.back();
+    } catch {
+      Alert.alert('Save failed', 'Unable to save rule to the hub.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return (
@@ -313,7 +378,7 @@ export default function RuleEditor() {
               {!isGlobal && (
                 <>
                   <View style={styles.cameraButtonGroup}>
-                    {MOCK_CAMERAS.map(camera => (
+                    {cameras.map(camera => (
                       <TouchableOpacity
                         key={camera.id}
                         style={[styles.cameraButton, rule.cameras.includes(camera.id) && styles.cameraButtonSelected]}
@@ -349,7 +414,7 @@ export default function RuleEditor() {
                   <Text style={styles.label}>Profile</Text>
                   <Dropdown
                     value={selectedProfile}
-                    options={MOCK_PROFILES.map(profile => ({
+                    options={profiles.map(profile => ({
                       label: profile.displayName,
                       value: profile.id,
                     }))}
@@ -423,7 +488,7 @@ export default function RuleEditor() {
                     <View key={idx} style={styles.listItem}>
                       <Text style={styles.listItemText}>
                         {trigger.type === 'motion_detected' && 'Motion Detected'}
-                        {trigger.type === 'face_detected' && `Face Detected - ${MOCK_PROFILES.find(p => p.id === (trigger as any).profileId)?.displayName || 'Unknown'}`}
+                        {trigger.type === 'face_detected' && `Face Detected - ${profiles.find(p => p.id === (trigger as any).profileId)?.displayName || 'Unknown'}`}
                         {trigger.type === 'time_interval' && `Every ${(trigger as any).interval} ${(trigger as any).unit}(s)`}
                         {trigger.type === 'scheduled' && `Scheduled - ${((trigger as any).days || []).join(', ')} at ${(trigger as any).time}`}
                       </Text>
@@ -488,7 +553,7 @@ export default function RuleEditor() {
                   <View style={styles.fieldGroup}>
                     <Text style={styles.label}>Select Cameras to Disable</Text>
                     <View style={styles.cameraButtonGroup}>
-                      {MOCK_CAMERAS.map((camera) => (
+                      {cameras.map((camera) => (
                         <TouchableOpacity
                           key={camera.id}
                           style={[
@@ -553,7 +618,7 @@ export default function RuleEditor() {
                         {action.type === 'mark_event_important' && 'Mark Event Important'}
                         {action.type === 'start_recording_clip' && `Start Recording - ${(action as any).duration} ${(action as any).unit}(s)`}
                         {action.type === 'tag_event_for_followup' && 'Tag for Follow-up'}
-                        {action.type === 'disable_camera' && `Disable Camera - ${(action as any).cameraIds.map((id: string) => MOCK_CAMERAS.find(c => c.id === id)?.name || id).join(', ')} for ${(action as any).duration} ${(action as any).unit}(s)`}
+                        {action.type === 'disable_camera' && `Disable Camera - ${(action as any).cameraIds.map((id: string) => cameras.find(c => c.id === id)?.name || id).join(', ')} for ${(action as any).duration} ${(action as any).unit}(s)`}
                       </Text>
                       <TouchableOpacity onPress={() => removeAction(idx)}>
                         <IconSymbol name="trash.fill" size={20} color={Colors.error} />
@@ -584,8 +649,10 @@ export default function RuleEditor() {
             ) : (
               <Button 
                 title="Save Rule"
-                onPress={save}
+                onPress={() => void save()}
                 variant="primary"
+                loading={saving}
+                disabled={saving}
                 style={{ flex: 1 }}
               />
             )}
